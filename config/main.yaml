@@ -1,0 +1,3 @@
+env: "dev" # prod | dev
+port: 5050
+salt: "abc123dfg456"
