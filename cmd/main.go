@@ -1,12 +1,21 @@
 package main
 
-import "github.com/B-Dmitriy/test-api/internal/app"
+import "github.com/B-Dmitriy/music-store/internal/app"
 
 /*
 Категории товаров
 Товары
 Пользоавтели
 Аутентификация, авторизация
+
+MW example
+func Logging(next http.Handler) http.Handler {
+  return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+    start := time.Now()
+    next.ServeHTTP(w, req)
+    log.Printf("%s %s %s", req.Method, req.RequestURI, time.Since(start))
+  })
+}
 */
 
 func main() {

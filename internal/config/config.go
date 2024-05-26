@@ -9,9 +9,10 @@ import (
 const configPath = "config/main.yaml"
 
 type Config struct {
-	Port int    `yaml:"port"`
-	Env  string `yaml:"env"`
-	Salt string `yaml:"salt"`
+	Port      int    `yaml:"port"`
+	Env       string `yaml:"env"`
+	PassCost  int    `yaml:"password_cost"`
+	SecretKey string `yaml:"secret_key"`
 }
 
 func MustReadConfig() *Config {

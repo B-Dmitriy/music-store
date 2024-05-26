@@ -1,3 +1,4 @@
 env: "dev" # prod | dev
 port: 5050
-salt: "abc123dfg456"
+password_cost: 3
+secret_key: "secret"
