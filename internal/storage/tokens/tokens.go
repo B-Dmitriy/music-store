@@ -2,7 +2,7 @@ package tokens
 
 import (
 	"database/sql"
-	
+
 	"github.com/B-Dmitriy/music-store/internal/models"
 )
 
@@ -35,6 +35,18 @@ func (t *TokenStorage) GetByUserID(userID int) (*models.RefreshToken, error) {
 	}
 
 	return &token, nil
+}
+
+func (t *TokenStorage) CheckToken(userID int) (bool, error) {
+	var token models.RefreshToken
+	row := t.db.QueryRow("SELECT * FROM refresh_tokens WHERE user_id = ?", userID)
+
+	err := row.Scan(&token.ID, &token.UserID, &token.RefreshToken)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (t *TokenStorage) ChangeToken(userID int, token string) error {
