@@ -2,7 +2,6 @@ package users
 
 import (
 	"database/sql"
-
 	"github.com/B-Dmitriy/music-store/internal/models"
 )
 

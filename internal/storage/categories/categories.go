@@ -2,7 +2,6 @@ package categories
 
 import (
 	"database/sql"
-
 	"github.com/B-Dmitriy/music-store/internal/models"
 )
 
@@ -33,4 +32,48 @@ func (s *CategoriesStorage) GetAll() ([]models.Category, error) {
 	}
 
 	return categoriesList, nil
+}
+
+func (s *CategoriesStorage) Create(name string) error {
+	_, err := s.db.Exec("INSERT INTO categories (name) VALUES (?);", name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CategoriesStorage) Update(categoryID int, name string) error {
+	result, err := s.db.Exec("UPDATE categories SET name=? WHERE id = ?;", name, categoryID)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *CategoriesStorage) Delete(categoryID int) error {
+	result, err := s.db.Exec("DELETE FROM categories WHERE id = ?;", categoryID)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

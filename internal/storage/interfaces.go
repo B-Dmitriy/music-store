@@ -7,7 +7,10 @@ type Products interface {
 }
 
 type Categories interface {
-	GetAll() ([]models.Product, error)
+	GetAll() ([]models.Category, error)
+	Create(name string) error
+	Update(categoryID int, name string) error
+	Delete(categoryID int) error
 }
 
 type Users interface {
@@ -17,6 +20,7 @@ type Users interface {
 
 type Tokens interface {
 	GetByUserID(userID int) (*models.RefreshToken, error)
+	CheckToken(userID int) (bool, error)
 	Create(userID int, token string) error
 	ChangeToken(userID int, token string) error
 	RemoveByUserID(userID int) error

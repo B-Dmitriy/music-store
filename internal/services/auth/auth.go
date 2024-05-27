@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -39,7 +37,11 @@ func New(logger *slog.Logger, pm *password.PasswordManager, tm *tokens.TokensMan
 // Login - curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123"}' http://localhost:5050/api/login
 func (a *AuthService) Login(w http.ResponseWriter, r *http.Request) {
 	var loginData models.LoginData
-	_ = json.NewDecoder(r.Body).Decode(&loginData)
+	err := json.NewDecoder(r.Body).Decode(&loginData)
+	if err != nil {
+		web.WriteServerError(w, err)
+		return
+	}
 
 	candidate, err := a.usersStorage.GetUserByEmail(loginData.Email)
 	if err != nil {
@@ -58,21 +60,15 @@ func (a *AuthService) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: test and refactoring
-	_, err = a.tokensStorage.GetByUserID(candidate.ID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = a.tokensStorage.Create(candidate.ID, tkns.RefreshToken)
-			if err != nil {
-				web.WriteServerError(w, err)
-				return
-			}
-		} else {
+	isExist, err := a.tokensStorage.CheckToken(candidate.ID)
+	if isExist {
+		err = a.tokensStorage.ChangeToken(candidate.ID, tkns.RefreshToken)
+		if err != nil {
 			web.WriteServerError(w, err)
 			return
 		}
 	} else {
-		err = a.tokensStorage.ChangeToken(candidate.ID, tkns.RefreshToken)
+		err = a.tokensStorage.Create(candidate.ID, tkns.RefreshToken)
 		if err != nil {
 			web.WriteServerError(w, err)
 			return
@@ -94,14 +90,17 @@ func (a *AuthService) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Logout - curl -i -X POST -H "Authorization: Bearer <token>" http://localhost:5050/api/logout
 func (a *AuthService) Logout(w http.ResponseWriter, r *http.Request) {
-	// TODO: refactoring
 	headerToken := r.Header.Get("Authorization")
+	bearerToken := strings.Split(headerToken, " ")
 
-	authToken := strings.Split(headerToken, " ")
+	if len(bearerToken) < 2 {
+		web.WriteBadRequest(w, fmt.Errorf("bearer token not found"))
+		return
+	}
 
-	// authToken[1] if len == 0 panic
-	userData, err := a.tokensManager.VerifyJWTToken(authToken[1])
+	userData, err := a.tokensManager.VerifyJWTToken(bearerToken[1])
 	if err != nil {
 		web.WriteBadRequest(w, fmt.Errorf("invalid token"))
 		return
@@ -118,38 +117,78 @@ func (a *AuthService) Logout(w http.ResponseWriter, r *http.Request) {
 
 // Registration - curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123", "username":"user2"}' http://localhost:5050/api/registration
 func (a *AuthService) Registration(w http.ResponseWriter, r *http.Request) {
+	op := "services.auth.Registration"
+	defer func() {
+		err := r.Body.Close()
+		if err != nil {
+			a.logger.Warn(fmt.Sprintf("request body close error: %s", err.Error()), slog.String("op", op))
+			return
+		}
+	}()
+
 	var userData models.RegistrationData
-	err := json.NewDecoder(r.Body).Decode(&userData) //TODO: закрывает ли чтение body
+	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil {
 		web.WriteBadRequest(w, err)
 		return
 	}
 
-	_, err = a.usersStorage.GetUserByEmail(userData.Email)
-	if errors.Is(err, sql.ErrNoRows) {
-		passHash, err := a.passManager.HashPassword(userData.Password)
-		if err != nil {
-			web.WriteServerError(w, err)
-			return
-		}
-
-		// TODO: unique constraint handle username or email
-		err = a.usersStorage.CreateUser(replacePasswordOnHash(&userData, passHash))
-		if err != nil {
-			web.WriteServerError(w, err)
-			return
-		}
-
-		web.WriteJSON(w, struct{}{})
+	passHash, err := a.passManager.HashPassword(userData.Password)
+	if err != nil {
+		web.WriteServerError(w, err)
 		return
 	}
 
-	web.WriteServerError(w, err)
+	err = a.usersStorage.CreateUser(replacePasswordOnHash(&userData, passHash))
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.email") {
+			web.WriteBadRequest(w, fmt.Errorf("email must be unique"))
+			return
+
+		}
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.username") {
+			web.WriteBadRequest(w, fmt.Errorf("username must be unique"))
+			return
+
+		}
+		web.WriteServerError(w, err)
+		return
+	}
+
+	web.WriteJSON(w, struct{}{})
+	return
 }
 
+// Refresh - curl -i -X POST -H "Cookie: refresh_token=eyJhbG.eyJlwMD.Iuu4C4n" http://localhost:5050/api/refresh
 func (a *AuthService) Refresh(w http.ResponseWriter, r *http.Request) {
-	// TODO: implement
-	panic("implement me")
+	c, err := r.Cookie("refresh_token")
+	if err != nil {
+		web.WriteBadRequest(w, fmt.Errorf("refresh token in cookey not found"))
+		return
+	}
+
+	userData, err := a.tokensManager.VerifyJWTToken(c.Value)
+	if err != nil {
+		web.WriteBadRequest(w, fmt.Errorf("invalid token"))
+		return
+	}
+
+	tkns, err := a.tokensManager.GenerateJWTTokens(userData.UserID, userData.UserRoleID)
+	if err != nil {
+		web.WriteServerError(w, err)
+		return
+	}
+
+	err = a.tokensStorage.ChangeToken(userData.UserID, tkns.RefreshToken)
+	if err != nil {
+		web.WriteServerError(w, err)
+		return
+	}
+
+	web.WriteJSON(w, &tokens.Tokens{
+		AcceptToken:  tkns.AcceptToken,
+		RefreshToken: tkns.RefreshToken,
+	})
 }
 
 func replacePasswordOnHash(user *models.RegistrationData, hash string) *models.RegistrationData {
