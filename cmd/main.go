@@ -8,6 +8,5 @@ func main() {
 		panic("application initialization failed")
 	}
 
-	// TODO: graceful shutdown
 	musicShop.Run()
 }

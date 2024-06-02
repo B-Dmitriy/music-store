@@ -3,7 +3,9 @@ package storage
 import "github.com/B-Dmitriy/music-store/internal/models"
 
 type Products interface {
-	GetAll() ([]models.Product, error)
+	GetAll(params *models.GetAllProductsParams) ([]models.Product, error)
+	GetAllWithCategory(params *models.GetAllProductsParams, categoryID int) ([]models.Product, error)
+	Delete(productID int) error
 }
 
 type Categories interface {
@@ -24,4 +26,9 @@ type Tokens interface {
 	Create(userID int, token string) error
 	ChangeToken(userID int, token string) error
 	RemoveByUserID(userID int) error
+}
+
+type ProductsCategories interface {
+	CreateProductWithCategories(body *models.ProductCreateBody) error
+	UpdateProductWithCategories(productID int, body *models.ProductUpdateBody) error
 }

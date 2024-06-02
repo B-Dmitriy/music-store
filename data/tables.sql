@@ -46,6 +46,7 @@ INSERT INTO products (title, price) VALUES ('YAMAHA F310', 16990.00);
 INSERT INTO categories (name) VALUES ('Электрогитары');
 INSERT INTO categories (name) VALUES ('Акустические гитары');
 INSERT INTO categories (name) VALUES ('IBANEZ');
+INSERT INTO categories (name) VALUES ('YAMAHA');
 
 INSERT INTO lnk_category_porduct (category_id,product_id) VALUES (1, 1);
 INSERT INTO lnk_category_porduct (category_id,product_id) VALUES (1, 2);
@@ -60,6 +61,7 @@ INSERT INTO roles (id, title) VALUES (10, 'user');
 .headers on
 .mode markdown
 PRAGMA foreign_keys = ON; -- Включает поддержку FOREIGN KEY, без этого не работает ON DELETE CASCADE
+                        -- filepath?_foreign_keys=on - in code
 
 -- Получение списка всех категорий
 SELECT * FROM categories;

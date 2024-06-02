@@ -32,13 +32,13 @@ func (tm *TokensManager) GenerateJWTTokens(userID int, userRoleID int) (*Tokens,
 	payloadAcceptToken := jwt.MapClaims{
 		"userID":     userID,
 		"userRoleID": userRoleID,
-		"exp":        time.Now().Add(time.Hour * 2).Unix(),
+		"exp":        time.Now().Add(time.Hour * 2).Unix(), // 2 hours
 	}
 
 	payloadRefreshToken := jwt.MapClaims{
 		"userID":     userID,
 		"userRoleID": userRoleID,
-		"exp":        time.Now().Add(time.Hour * 24 * 14).Unix(),
+		"exp":        time.Now().Add(time.Hour * 24 * 14).Unix(), // 14 days
 	}
 
 	acceptToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payloadAcceptToken)

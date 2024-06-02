@@ -2,9 +2,10 @@ package auth
 
 import (
 	"fmt"
-	"github.com/B-Dmitriy/music-store/pgk/web"
 	"net/http"
 	"strings"
+
+	"github.com/B-Dmitriy/music-store/pgk/web"
 )
 
 func (a *AuthService) AuthMiddleware(next http.Handler) http.Handler {

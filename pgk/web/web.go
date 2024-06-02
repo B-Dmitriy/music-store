@@ -20,7 +20,18 @@ func WriteJSON(w http.ResponseWriter, data any) {
 	}
 }
 
-// TODO: implement 403
+func WriteForbidden(w http.ResponseWriter, e error) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+
+	err := json.NewEncoder(w).Encode(&WebError{
+		Code:    http.StatusForbidden,
+		Message: e.Error(),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
 
 func WriteUnauthorized(w http.ResponseWriter, e error) {
 	w.Header().Add("Content-Type", "application/json")

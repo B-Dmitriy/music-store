@@ -25,3 +25,21 @@
 - Архитектурная организация API
 - Корректная обработка внештатных ситуаций
 - Покрытие кода тестами
+
+```text
+Auth service
+------------------------------------------------------------------------------------------------------------------------
+curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123"}' http://localhost:5050/api/login
+curl -i -X POST -H "Authorization: Bearer <token>" http://localhost:5050/api/logout
+curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123", "username":"user2"}' http://localhost:5050/api/registration
+curl -i -X POST -H "Cookie: refresh_token=eyJhbG.eyJlwMD.Iuu4C4n" http://localhost:5050/api/refresh
+
+Categories service
+------------------------------------------------------------------------------------------------------------------------
+curl -i -X GET "http://localhost:5050/api/categories"
+curl -i -X POST -d '{"name": "Бас гитары"}' http://localhost:5050/api/categories
+
+Products service
+------------------------------------------------------------------------------------------------------------------------
+curl -i -X GET "http://localhost:5050/api/products"
+```

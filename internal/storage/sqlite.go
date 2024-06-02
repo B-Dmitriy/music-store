@@ -3,13 +3,13 @@ package storage
 import (
 	"database/sql"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-const filePath = "./data/musicstore.db"
+const filePath = "./data/musicstore.db?_foreign_keys=on"
 
 func New() (*sql.DB, error) {
-	storage, err := sql.Open("sqlite", filePath)
+	storage, err := sql.Open("sqlite3", filePath)
 	if err != nil {
 		return nil, err
 	}

@@ -29,10 +29,19 @@ func New(logger *slog.Logger, storage *categories.CategoriesStorage, v *validato
 	}
 }
 
-// GetCategoriesList - curl -i -X GET "http://localhost:5050/api/categories"
+func (h *CategoriesService) panicRecover(w http.ResponseWriter, op string) {
+	if r := recover(); r != nil {
+		h.logger.Error("panic in services.categories", slog.String("op", op))
+		web.WriteServerError(w, fmt.Errorf("server error"))
+		return
+	}
+}
+
 func (h *CategoriesService) GetCategoriesList(w http.ResponseWriter, r *http.Request) {
-	op := "server.categories.GetCategoriesList"
+	op := "services.categories.GetCategoriesList"
 	logger := h.logger.With(slog.String("op", op))
+
+	defer h.panicRecover(w, op)
 
 	categoriesList, err := h.storage.GetAll()
 	if err != nil {
@@ -44,11 +53,11 @@ func (h *CategoriesService) GetCategoriesList(w http.ResponseWriter, r *http.Req
 	web.WriteJSON(w, categoriesList)
 }
 
-// CreateCategory - curl -i -X POST -d '{"name": "гусли"}' http://localhost:5050/api/categories
 func (h *CategoriesService) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	op := "server.categories.CreateCategory"
+	op := "services.categories.CreateCategory"
 	logger := h.logger.With(slog.String("op", op))
 
+	defer h.panicRecover(w, op)
 	defer r.Body.Close()
 
 	var body models.CreateCategoryBody
@@ -75,17 +84,18 @@ func (h *CategoriesService) CreateCategory(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoriesService) UpdateCategory(w http.ResponseWriter, r *http.Request) {
-	op := "server.categories.UpdateCategory"
+	op := "services.categories.UpdateCategory"
 	logger := h.logger.With(slog.String("op", op))
-	idFromURL := r.PathValue("id")
 
+	defer h.panicRecover(w, op)
+	defer r.Body.Close()
+
+	idFromURL := r.PathValue("id")
 	categoryID, err := strconv.Atoi(idFromURL)
 	if err != nil || categoryID < 0 {
 		web.WriteBadRequest(w, fmt.Errorf("categoryID must been positive int"))
 		return
 	}
-
-	defer r.Body.Close()
 
 	var body models.UpdateCategoryBody
 	err = json.NewDecoder(r.Body).Decode(&body)
@@ -115,10 +125,12 @@ func (h *CategoriesService) UpdateCategory(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoriesService) DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	op := "server.categories.DeleteCategory"
+	op := "services.categories.DeleteCategory"
 	logger := h.logger.With(slog.String("op", op))
-	idFromURL := r.PathValue("id")
 
+	defer h.panicRecover(w, op)
+
+	idFromURL := r.PathValue("id")
 	categoryID, err := strconv.Atoi(idFromURL)
 	if err != nil || categoryID < 0 {
 		web.WriteBadRequest(w, fmt.Errorf("categoryID must been positive int"))

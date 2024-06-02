@@ -12,6 +12,7 @@ import (
 	"github.com/B-Dmitriy/music-store/pgk/password"
 	"github.com/B-Dmitriy/music-store/pgk/tokens"
 	"github.com/B-Dmitriy/music-store/pgk/web"
+	"github.com/go-playground/validator/v10"
 
 	tokensStore "github.com/B-Dmitriy/music-store/internal/storage/tokens"
 )
@@ -22,20 +23,41 @@ type AuthService struct {
 	tokensManager *tokens.TokensManager
 	usersStorage  *users.UsersStorage
 	tokensStorage *tokensStore.TokenStorage
+	validator     *validator.Validate
 }
 
-func New(logger *slog.Logger, pm *password.PasswordManager, tm *tokens.TokensManager, us *users.UsersStorage, ts *tokensStore.TokenStorage) *AuthService {
+func New(
+	logger *slog.Logger,
+	pm *password.PasswordManager,
+	tm *tokens.TokensManager,
+	us *users.UsersStorage,
+	ts *tokensStore.TokenStorage,
+	v *validator.Validate,
+) *AuthService {
 	return &AuthService{
 		logger:        logger,
 		passManager:   pm,
 		tokensManager: tm,
 		usersStorage:  us,
 		tokensStorage: ts,
+		validator:     v,
 	}
 }
 
-// Login - curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123"}' http://localhost:5050/api/login
+func (h *AuthService) panicRecover(w http.ResponseWriter, op string) {
+	if r := recover(); r != nil {
+		h.logger.Error("panic in services.auth", slog.String("op", op))
+		web.WriteServerError(w, fmt.Errorf("server error"))
+		return
+	}
+}
+
 func (a *AuthService) Login(w http.ResponseWriter, r *http.Request) {
+	op := "services.auth.Login"
+
+	defer a.panicRecover(w, op)
+	defer r.Body.Close()
+
 	var loginData models.LoginData
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
@@ -90,8 +112,11 @@ func (a *AuthService) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Logout - curl -i -X POST -H "Authorization: Bearer <token>" http://localhost:5050/api/logout
 func (a *AuthService) Logout(w http.ResponseWriter, r *http.Request) {
+	op := "services.auth.Logout"
+
+	defer a.panicRecover(w, op)
+
 	headerToken := r.Header.Get("Authorization")
 	bearerToken := strings.Split(headerToken, " ")
 
@@ -115,21 +140,22 @@ func (a *AuthService) Logout(w http.ResponseWriter, r *http.Request) {
 	web.WriteJSON(w, struct{}{})
 }
 
-// Registration - curl -i -X POST -d '{"email": "test2@mail.ru", "password": "qwerty123", "username":"user2"}' http://localhost:5050/api/registration
 func (a *AuthService) Registration(w http.ResponseWriter, r *http.Request) {
 	op := "services.auth.Registration"
-	defer func() {
-		err := r.Body.Close()
-		if err != nil {
-			a.logger.Warn(fmt.Sprintf("request body close error: %s", err.Error()), slog.String("op", op))
-			return
-		}
-	}()
+
+	defer a.panicRecover(w, op)
+	defer r.Body.Close()
 
 	var userData models.RegistrationData
 	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil {
 		web.WriteBadRequest(w, err)
+		return
+	}
+
+	err = a.validator.Struct(&userData)
+	if err != nil {
+		web.WriteBadRequest(w, err.(validator.ValidationErrors))
 		return
 	}
 
@@ -159,8 +185,11 @@ func (a *AuthService) Registration(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Refresh - curl -i -X POST -H "Cookie: refresh_token=eyJhbG.eyJlwMD.Iuu4C4n" http://localhost:5050/api/refresh
 func (a *AuthService) Refresh(w http.ResponseWriter, r *http.Request) {
+	op := "services.auth.Refresh"
+
+	defer a.panicRecover(w, op)
+
 	c, err := r.Cookie("refresh_token")
 	if err != nil {
 		web.WriteBadRequest(w, fmt.Errorf("refresh token in cookey not found"))

@@ -35,11 +35,10 @@ func New() (*App, error) {
 	tm := tokens.New(cfg.SecretKey)
 	logger.Info("tokens manager initialized")
 
-	// TODO: Сделать 2 варианта хранилища sqlite3 и ещё 1 (м/б файл/ы)
 	db, err := storage.New()
 	if err != nil {
 		logger.Error("storage initialization error", slog.String("text", err.Error()))
-		os.Exit(1)
+		return nil, err
 	}
 	logger.Info("storage initialized", slog.String("driver", "sqlite3"))
 
@@ -59,14 +58,4 @@ func (a *App) Run() {
 		a.logger.Error(fmt.Sprintf("application start error: %s", err.Error()))
 		os.Exit(1)
 	}
-}
-
-func (a *App) Stop() {
-	err := a.storage.Close()
-	if err != nil {
-		a.logger.Error(fmt.Sprintf("application stopped with error: %s", err.Error()))
-		os.Exit(1)
-	}
-
-	a.logger.Info("application stopped success")
 }
