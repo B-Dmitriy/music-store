@@ -1,9 +1,15 @@
 # Get started
-Для запуска приложения необходим флаг CGO_ENABLED=1.
+Для запуска приложения необходим флаг CGO_ENABLED=1.<br/>
+Требуется для пакета github.com/mattn/go-sqlite3
 ```
  CGO_ENABLED=1 go run cmd/main.go
 ```
-Требуется для пакета github.com/mattn/go-sqlite3
+
+Для запуска в Docker
+```
+sudo docker build -t musicstore:v1 .
+sudo docker run -p 5050:5050 --name musicstore musicstore:v1
+```
 
 # Техническое задание — Разработка API
 
